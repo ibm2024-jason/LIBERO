@@ -104,6 +104,9 @@ DATASET_LINKS = {
 }
 
 HF_REPO_ID = "yifengzhu-hf/LIBERO-datasets"
+HF_DATASET_ALIASES = {
+    "libero_100": ["libero_90", "libero_10"],
+}
 
 
 def download_from_huggingface(dataset_name, download_dir, check_overwrite=True):
@@ -145,6 +148,10 @@ def download_from_huggingface(dataset_name, download_dir, check_overwrite=True):
     print(f"Downloaded {file_count} files for {dataset_name}")
 
 
+def get_huggingface_datasets_to_download(dataset_name):
+    return HF_DATASET_ALIASES.get(dataset_name, [dataset_name])
+
+
 def libero_dataset_download(datasets="all", download_dir=None, check_overwrite=True, use_huggingface=False):
     """Download libero datasets
 
@@ -165,6 +172,8 @@ def libero_dataset_download(datasets="all", download_dir=None, check_overwrite=T
         "libero_goal",
         "libero_spatial",
         "libero_100",
+        "libero_10",
+        "libero_90",
     ]
 
     datasets_to_download = [
@@ -178,11 +187,12 @@ def libero_dataset_download(datasets="all", download_dir=None, check_overwrite=T
         print(f"Downloading {dataset_name}")
         
         if use_huggingface:
-            download_from_huggingface(
-                dataset_name=dataset_name,
-                download_dir=download_dir,
-                check_overwrite=check_overwrite
-            )
+            for hf_dataset_name in get_huggingface_datasets_to_download(dataset_name):
+                download_from_huggingface(
+                    dataset_name=hf_dataset_name,
+                    download_dir=download_dir,
+                    check_overwrite=check_overwrite
+                )
         else:
             print("Using original download links (these may expire soon)")
             download_url(
