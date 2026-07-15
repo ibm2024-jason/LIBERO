@@ -9,13 +9,11 @@ from pathlib import Path
 import zipfile
 import io
 import urllib.request
-import shutil
 
 from libero.libero import get_libero_path
 
 try:
     from huggingface_hub import snapshot_download
-    import shutil
     HUGGINGFACE_AVAILABLE = True
 except ImportError:
     HUGGINGFACE_AVAILABLE = False
@@ -115,7 +113,8 @@ def download_from_huggingface(dataset_name, download_dir, check_overwrite=True):
     Args:
         dataset_name (str): Name of the dataset to download (e.g., 'libero_spatial')
         download_dir (str): Directory where the dataset should be downloaded
-        check_overwrite (bool): If True, will check if dataset already exists
+        check_overwrite (bool): Kept for API compatibility. Hugging Face downloads
+            are resumable and only missing or stale files are fetched.
     """
     if not HUGGINGFACE_AVAILABLE:
         raise ImportError(
@@ -125,29 +124,20 @@ def download_from_huggingface(dataset_name, download_dir, check_overwrite=True):
     # Create the destination folder
     os.makedirs(download_dir, exist_ok=True)
     
-    # Check if dataset already exists
     dataset_dir = os.path.join(download_dir, dataset_name)
-    if check_overwrite and os.path.exists(dataset_dir):
-        user_response = input(
-            f"Warning: dataset {dataset_name} already exists at {dataset_dir}. Overwrite? y/n\n"
-        )
-        if user_response.lower() not in {"yes", "y"}:
-            print(f"Skipping download of {dataset_name}")
-            return
-        
-        # Remove existing directory
-        print(f"Removing existing folder: {dataset_dir}")
-        shutil.rmtree(dataset_dir)
+    if os.path.exists(dataset_dir):
+        print(f"Found existing dataset folder: {dataset_dir}")
+        print("Checking for missing or stale files instead of re-downloading everything...")
     
     # Download the dataset
     print(f"Downloading {dataset_name} from Hugging Face...")
-    folder_path = snapshot_download(
+    snapshot_download(
         repo_id=HF_REPO_ID,
         repo_type="dataset",
         local_dir=download_dir,
         allow_patterns=f"{dataset_name}/*",
         local_dir_use_symlinks=False,  # Prevents using symlinks to cached files
-        force_download=True  # Forces re-downloading files
+        force_download=False  # Reuse existing files and fetch only what is needed.
     )
     
     # Verify downloaded files
